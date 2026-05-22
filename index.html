@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>好好吃饭</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0 !important;
+            display: none !important;
+        }
+        input[type=number] {
+            -moz-appearance: textfield !important;
+            appearance: textfield !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-layer"></div>
+
+    <div class="app">
+        <!-- 顶部 - 跟着滚动，不是fixed -->
+        <header class="topbar glass">
+            <div class="topbar-left">
+                <div class="topbar-avatar">💝</div>
+                <div class="title-wrap">
+                    <h1>好好吃饭</h1>
+                    <p class="sub" id="love-days">爱你的第 1 天</p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="weather-chip">
+                    <span id="weather-icon">🌤</span>
+                    <span id="weather-temp">--°</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 页面 -->
+        <main class="pages">
+            <!-- 首页 -->
+            <section class="page active" id="page-home">
+                <div class="card card-weather glass">
+                    <div class="weather-top">
+                        <div>
+                            <div class="weather-loc">佛山 · 狮山</div>
+                            <div class="weather-info" id="weather-info">获取中...</div>
+                        </div>
+                        <div class="weather-temp-lg" id="weather-temp-lg">--°</div>
+                    </div>
+                    <div class="weather-tip" id="weather-tip">正在获取天气信息...</div>
+                </div>
+
+                <div class="card card-love glass">
+                    <div class="love-top"><span>✨</span><span>我们在一起</span></div>
+                    <div class="love-num" id="love-num">1</div>
+                    <div class="love-day">天</div>
+                </div>
+
+                <div class="card glass">
+                    <div class="card-head"><span>⚖️</span>今日体重</div>
+                    <div class="weight-wrap">
+                        <input type="text" id="weight" step="0.01" placeholder="53.18" inputmode="decimal">
+                        <span class="weight-kg">kg</span>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <div class="card-head"><span>🎯</span>每日摄入量</div>
+                    <div class="target-row">
+                        <div class="target-box"><div class="target-val" id="t-cal">1674</div><div class="target-lbl">热量</div></div>
+                        <div class="target-box"><div class="target-val" id="t-pro">147</div><div class="target-lbl">蛋白质</div></div>
+                        <div class="target-box"><div class="target-val" id="t-carb">167</div><div class="target-lbl">碳水</div></div>
+                        <div class="target-box"><div class="target-val" id="t-fat">47</div><div class="target-lbl">脂肪</div></div>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <div class="card-head"><span>🍽️</span>今日饮食</div>
+                    <div class="meals">
+                        <div class="meal">
+                            <div class="meal-label"><span>🌅</span>早餐</div>
+                            <input type="text" id="breakfast" placeholder="吃了什么..." class="meal-input">
+                            <button class="btn-analyze" onclick="analyzeMeal('breakfast')">分析</button>
+                            <div class="meal-result" id="breakfast-result"></div>
+                        </div>
+                        <div class="meal">
+                            <div class="meal-label"><span>☀️</span>午餐</div>
+                            <input type="text" id="lunch" placeholder="吃了什么..." class="meal-input">
+                            <button class="btn-analyze" onclick="analyzeMeal('lunch')">分析</button>
+                            <div class="meal-result" id="lunch-result"></div>
+                        </div>
+                        <div class="meal">
+                            <div class="meal-label"><span>🌙</span>晚餐</div>
+                            <input type="text" id="dinner" placeholder="吃了什么..." class="meal-input">
+                            <button class="btn-analyze" onclick="analyzeMeal('dinner')">分析</button>
+                            <div class="meal-result" id="dinner-result"></div>
+                        </div>
+                        <div class="meal">
+                            <div class="meal-label"><span>🍎</span>加餐</div>
+                            <input type="text" id="snack" placeholder="吃了什么..." class="meal-input">
+                            <button class="btn-analyze" onclick="analyzeMeal('snack')">分析</button>
+                            <div class="meal-result" id="snack-result"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 统计页 -->
+            <section class="page" id="page-stats">
+                <div class="card glass">
+                    <div class="card-head"><span>📊</span>今日摄入</div>
+                    <div class="rings">
+                        <div class="ring-item">
+                            <div class="ring">
+                                <svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring-fg cal" id="ring-cal" cx="50" cy="50" r="42"/></svg>
+                                <div class="ring-txt"><div class="ring-num" id="s-cal">0</div><div class="ring-unit">kcal</div></div>
+                            </div>
+                            <div class="ring-name">热量</div>
+                            <div class="ring-rem" id="r-cal"></div>
+                        </div>
+                        <div class="ring-item">
+                            <div class="ring">
+                                <svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring-fg pro" id="ring-pro" cx="50" cy="50" r="42"/></svg>
+                                <div class="ring-txt"><div class="ring-num" id="s-pro">0</div><div class="ring-unit">g</div></div>
+                            </div>
+                            <div class="ring-name">蛋白质</div>
+                            <div class="ring-rem" id="r-pro"></div>
+                        </div>
+                        <div class="ring-item">
+                            <div class="ring">
+                                <svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring-fg carb" id="ring-carb" cx="50" cy="50" r="42"/></svg>
+                                <div class="ring-txt"><div class="ring-num" id="s-carb">0</div><div class="ring-unit">g</div></div>
+                            </div>
+                            <div class="ring-name">碳水</div>
+                            <div class="ring-rem" id="r-carb"></div>
+                        </div>
+                        <div class="ring-item">
+                            <div class="ring">
+                                <svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring-fg fat" id="ring-fat" cx="50" cy="50" r="42"/></svg>
+                                <div class="ring-txt"><div class="ring-num" id="s-fat">0</div><div class="ring-unit">g</div></div>
+                            </div>
+                            <div class="ring-name">脂肪</div>
+                            <div class="ring-rem" id="r-fat"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-save" onclick="saveRecord()">保存今日记录</button>
+            </section>
+
+            <!-- 历史页 - 日历 -->
+            <section class="page" id="page-history">
+                <div class="card glass calendar-card">
+                    <div class="cal-header">
+                        <div class="cal-title" id="cal-title">2026年5月</div>
+                        <div class="cal-nav">
+                            <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+                            <button class="cal-btn" onclick="changeMonth(1)">›</button>
+                        </div>
+                    </div>
+                    <div class="cal-weekdays">
+                        <div class="cal-weekday">日</div>
+                        <div class="cal-weekday">一</div>
+                        <div class="cal-weekday">二</div>
+                        <div class="cal-weekday">三</div>
+                        <div class="cal-weekday">四</div>
+                        <div class="cal-weekday">五</div>
+                        <div class="cal-weekday">六</div>
+                    </div>
+                    <div class="cal-days" id="cal-days"></div>
+                    <div class="day-detail" id="day-detail" style="display:none"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 底部导航 - 悬浮胶囊 -->
+    <nav class="bottom-nav glass">
+        <button class="nav-item active" id="tab-home" onclick="switchPage('home')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>饮食</span>
+        </button>
+        <button class="nav-item" id="tab-stats" onclick="switchPage('stats')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+            <span>统计</span>
+        </button>
+        <button class="nav-item" id="tab-history" onclick="switchPage('history')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>历史</span>
+        </button>
+    </nav>
+
+    <div class="loading" id="loading" style="display:none">
+        <div class="loading-inner">
+            <div class="spinner"></div>
+            <span>AI分析中...</span>
+        </div>
+    </div>
+
+    <!-- 提示弹窗 -->
+    <div class="modal" id="tip-modal" style="display:none" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-icon">💌</div>
+            <div class="modal-text" id="modal-tip"></div>
+            <button class="modal-btn" onclick="closeModal()">知道啦</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
