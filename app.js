@@ -9,20 +9,120 @@ const HEIGHT = 170;
 const AGE = 19;
 const LOVE_DATE = new Date('2025-05-17');
 
-let calYear, calMonth, selectedDate = null;
+// JSONBIN配置
+const JSONBIN_ID = '6a114e686877513b27bb8d5f';
+const JSONBIN_KEY = '$2a$10$z9HhfWwLmVlfzinM6Yc6jO7JwyAAmCIImmTh7.OvJT.1IhN/.YhMO';
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 
-document.addEventListener('DOMContentLoaded', () => {
+let calYear, calMonth, selectedDate = null;
+let cloudRecords = {};
+let isLoadingCloud = false;
+
+document.addEventListener('DOMContentLoaded', async () => {
     initLove();
     loadSaved();
     calcTargets();
-    loadToday();
     bindInputs();
     getWeather();
     const now = new Date();
     calYear = now.getFullYear();
     calMonth = now.getMonth();
+    
+    // 从云端加载数据
+    await loadFromCloud();
+    
+    // 迁移本地缓存到云端
+    migrateLocalToCloud();
+    
+    loadToday();
     renderCalendar();
 });
+
+// 迁移本地缓存数据到云端
+function migrateLocalToCloud() {
+    const localRecords = JSON.parse(localStorage.getItem('records') || '{}');
+    const localKeys = Object.keys(localRecords);
+    
+    if (localKeys.length === 0) return;
+    
+    let hasNew = false;
+    localKeys.forEach(date => {
+        // 如果云端没有这一天的数据，就把本地的迁移过去
+        if (!cloudRecords[date]) {
+            const r = localRecords[date];
+            // 转换成中文字段格式
+            cloudRecords[date] = {
+                '日期': date,
+                '体重': r.weight || '',
+                '目标': {
+                    '热量': r.targets?.calories || 1674,
+                    '蛋白质': r.targets?.protein || 147,
+                    '碳水': r.targets?.carbs || 167,
+                    '脂肪': r.targets?.fat || 47
+                },
+                '摄入': {
+                    '热量': Math.round(r.intake?.calories || 0),
+                    '蛋白质': Math.round(r.intake?.protein || 0),
+                    '碳水': Math.round(r.intake?.carbs || 0),
+                    '脂肪': Math.round(r.intake?.fat || 0)
+                },
+                '饮食': {
+                    '早餐': r.meals?.breakfast || '',
+                    '午餐': r.meals?.lunch || '',
+                    '晚餐': r.meals?.dinner || '',
+                    '加餐': r.meals?.snack || ''
+                }
+            };
+            hasNew = true;
+        }
+    });
+    
+    if (hasNew) {
+        saveToCloud();
+        console.log('本地数据已迁移到云端');
+        toast('历史记录已同步到云端 ✨');
+    }
+}
+
+// 从JSONBIN读取数据
+async function loadFromCloud() {
+    isLoadingCloud = true;
+    try {
+        const res = await fetch(JSONBIN_URL + '/latest', {
+            headers: { 'X-Master-Key': JSONBIN_KEY }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            cloudRecords = data.record?.records || {};
+            console.log('云端数据加载成功');
+        }
+    } catch(e) {
+        console.log('云端加载失败，使用本地数据', e);
+        cloudRecords = JSON.parse(localStorage.getItem('records') || '{}');
+    }
+    isLoadingCloud = false;
+}
+
+// 保存到JSONBIN
+async function saveToCloud() {
+    try {
+        const res = await fetch(JSONBIN_URL, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_KEY
+            },
+            body: JSON.stringify({ records: cloudRecords })
+        });
+        if (res.ok) {
+            console.log('云端保存成功');
+        }
+    } catch(e) {
+        console.log('云端保存失败', e);
+    }
+    // 同时保存到本地作为备份
+    localStorage.setItem('records', JSON.stringify(cloudRecords));
+}
 
 // 纪念日
 function initLove() {
@@ -184,10 +284,7 @@ function bindInputs() {
 function loadSaved() {
     const w = localStorage.getItem('weight');
     if (w) document.getElementById('weight').value = w;
-    ['breakfast','lunch','dinner','snack'].forEach(id => {
-        const v = localStorage.getItem('meal_' + id);
-        if (v) document.getElementById(id).value = v;
-    });
+    // 从云端加载今日食物（在loadFromCloud后会调用loadToday）
 }
 
 function calcTargets() {
@@ -301,48 +398,84 @@ function setRem(id, cur, target, unit) {
 function autoSave() {
     const today = new Date().toISOString().split('T')[0];
     const r = {
-        date: today,
-        weight: document.getElementById('weight').value,
-        targets: APP.targets,
-        intake: { ...APP.intake },
-        meals: {
-            breakfast: document.getElementById('breakfast').value,
-            lunch: document.getElementById('lunch').value,
-            dinner: document.getElementById('dinner').value,
-            snack: document.getElementById('snack').value
+        '日期': today,
+        '体重': document.getElementById('weight').value,
+        '目标': {
+            '热量': APP.targets.calories,
+            '蛋白质': APP.targets.protein,
+            '碳水': APP.targets.carbs,
+            '脂肪': APP.targets.fat
         },
-        mealData: { ...APP.meals }
+        '摄入': {
+            '热量': Math.round(APP.intake.calories),
+            '蛋白质': Math.round(APP.intake.protein),
+            '碳水': Math.round(APP.intake.carbs),
+            '脂肪': Math.round(APP.intake.fat)
+        },
+        '饮食': {
+            '早餐': document.getElementById('breakfast').value,
+            '午餐': document.getElementById('lunch').value,
+            '晚餐': document.getElementById('dinner').value,
+            '加餐': document.getElementById('snack').value
+        }
     };
-    let records = JSON.parse(localStorage.getItem('records') || '{}');
-    records[today] = r;
-    localStorage.setItem('records', JSON.stringify(records));
+    cloudRecords[today] = r;
+    saveToCloud();
     renderCalendar();
 }
 
 function saveRecord() {
     autoSave();
-    toast('已保存 ✨');
+    toast('已保存到云端 ✨');
 }
 
 function loadToday() {
     const today = new Date().toISOString().split('T')[0];
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
-    const r = records[today];
+    const r = cloudRecords[today];
     if (!r) return;
-    if (r.targets) APP.targets = r.targets;
-    if (r.intake) APP.intake = r.intake;
-    if (r.mealData) APP.meals = r.mealData;
+    
+    // 加载体重
+    if (r['体重']) {
+        document.getElementById('weight').value = r['体重'];
+        localStorage.setItem('weight', r['体重']);
+    }
+    
+    // 加载食物记录到输入框
+    if (r['饮食']) {
+        document.getElementById('breakfast').value = r['饮食']['早餐'] || '';
+        document.getElementById('lunch').value = r['饮食']['午餐'] || '';
+        document.getElementById('dinner').value = r['饮食']['晚餐'] || '';
+        document.getElementById('snack').value = r['饮食']['加餐'] || '';
+    }
+    
+    if (r['目标']) {
+        APP.targets = {
+            calories: r['目标']['热量'],
+            protein: r['目标']['蛋白质'],
+            carbs: r['目标']['碳水'],
+            fat: r['目标']['脂肪']
+        };
+    }
+    
+    if (r['摄入']) {
+        APP.intake = {
+            calories: r['摄入']['热量'] || 0,
+            protein: r['摄入']['蛋白质'] || 0,
+            carbs: r['摄入']['碳水'] || 0,
+            fat: r['摄入']['脂肪'] || 0
+        };
+    }
+    
     document.getElementById('t-cal').textContent = APP.targets.calories;
     document.getElementById('t-pro').textContent = APP.targets.protein;
     document.getElementById('t-carb').textContent = APP.targets.carbs;
     document.getElementById('t-fat').textContent = APP.targets.fat;
-    Object.keys(APP.meals).forEach(t => { if (APP.meals[t]) showResult(t, APP.meals[t]); });
+    
     updateStats();
 }
 
 // 日历
 function renderCalendar() {
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
     const first = new Date(calYear, calMonth, 1);
     const last = new Date(calYear, calMonth + 1, 0);
     const startDay = first.getDay();
@@ -360,7 +493,7 @@ function renderCalendar() {
     for (let d = 1; d <= totalDays; d++) {
         const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = dateStr === todayStr;
-        const hasRecord = records[dateStr];
+        const hasRecord = cloudRecords[dateStr];
         const isSelected = dateStr === selectedDate;
         let cls = 'cal-day';
         if (isToday) cls += ' today';
@@ -392,8 +525,7 @@ function selectDate(dateStr) {
 }
 
 function showDayDetail(dateStr) {
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
-    const r = records[dateStr];
+    const r = cloudRecords[dateStr];
     const detail = document.getElementById('day-detail');
 
     if (!r) {
@@ -406,22 +538,22 @@ function showDayDetail(dateStr) {
 
     const d = new Date(dateStr + 'T00:00:00');
     const week = ['日','一','二','三','四','五','六'][d.getDay()];
-    const i = r.intake || {};
-    const t = r.targets || {};
+    const i = r['摄入'] || {};
+    const t = r['目标'] || {};
 
     detail.innerHTML = `
         <div class="day-detail-title">${d.getMonth()+1}月${d.getDate()}日 周${week}</div>
         <div class="day-detail-stats">
-            <div class="day-stat">🔥 热量 <strong>${Math.round(i.calories||0)}</strong>/${t.calories||'—'}kcal</div>
-            <div class="day-stat">💪 蛋白质 <strong>${Math.round(i.protein||0)}</strong>/${t.protein||'—'}g</div>
-            <div class="day-stat">⚡ 碳水 <strong>${Math.round(i.carbs||0)}</strong>/${t.carbs||'—'}g</div>
-            <div class="day-stat">🫧 脂肪 <strong>${Math.round(i.fat||0)}</strong>/${t.fat||'—'}g</div>
+            <div class="day-stat">🔥 热量 <strong>${i['热量']||0}</strong>/${t['热量']||'—'}kcal</div>
+            <div class="day-stat">💪 蛋白质 <strong>${i['蛋白质']||0}</strong>/${t['蛋白质']||'—'}g</div>
+            <div class="day-stat">⚡ 碳水 <strong>${i['碳水']||0}</strong>/${t['碳水']||'—'}g</div>
+            <div class="day-stat">🫧 脂肪 <strong>${i['脂肪']||0}</strong>/${t['脂肪']||'—'}g</div>
         </div>
         <div class="day-meals">
-            ${r.meals?.breakfast ? `<div><span>🌅 早餐：</span>${r.meals.breakfast}</div>` : ''}
-            ${r.meals?.lunch ? `<div><span>☀️ 午餐：</span>${r.meals.lunch}</div>` : ''}
-            ${r.meals?.dinner ? `<div><span>🌙 晚餐：</span>${r.meals.dinner}</div>` : ''}
-            ${r.meals?.snack ? `<div><span>🍎 加餐：</span>${r.meals.snack}</div>` : ''}
+            ${r['饮食']?.['早餐'] ? `<div><span>🌅 早餐：</span>${r['饮食']['早餐']}</div>` : ''}
+            ${r['饮食']?.['午餐'] ? `<div><span>☀️ 午餐：</span>${r['饮食']['午餐']}</div>` : ''}
+            ${r['饮食']?.['晚餐'] ? `<div><span>🌙 晚餐：</span>${r['饮食']['晚餐']}</div>` : ''}
+            ${r['饮食']?.['加餐'] ? `<div><span>🍎 加餐：</span>${r['饮食']['加餐']}</div>` : ''}
         </div>
         <div class="day-actions">
             <button class="day-btn btn-load" onclick="loadRecord('${dateStr}')">加载</button>
@@ -432,19 +564,35 @@ function showDayDetail(dateStr) {
 }
 
 function loadRecord(date) {
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
-    const r = records[date];
+    const r = cloudRecords[date];
     if (!r) return;
-    if (r.weight) { document.getElementById('weight').value = r.weight; localStorage.setItem('weight', r.weight); }
-    if (r.targets) APP.targets = r.targets;
-    if (r.intake) APP.intake = r.intake;
-    if (r.mealData) APP.meals = r.mealData;
-    ['breakfast','lunch','dinner','snack'].forEach(t => {
-        const v = r.meals?.[t] || '';
-        document.getElementById(t).value = v;
-        localStorage.setItem('meal_' + t, v);
-        if (APP.meals[t]) showResult(t, APP.meals[t]);
-    });
+    if (r['体重']) { document.getElementById('weight').value = r['体重']; localStorage.setItem('weight', r['体重']); }
+    
+    if (r['饮食']) {
+        document.getElementById('breakfast').value = r['饮食']['早餐'] || '';
+        document.getElementById('lunch').value = r['饮食']['午餐'] || '';
+        document.getElementById('dinner').value = r['饮食']['晚餐'] || '';
+        document.getElementById('snack').value = r['饮食']['加餐'] || '';
+    }
+    
+    if (r['目标']) {
+        APP.targets = {
+            calories: r['目标']['热量'],
+            protein: r['目标']['蛋白质'],
+            carbs: r['目标']['碳水'],
+            fat: r['目标']['脂肪']
+        };
+    }
+    
+    if (r['摄入']) {
+        APP.intake = {
+            calories: r['摄入']['热量'] || 0,
+            protein: r['摄入']['蛋白质'] || 0,
+            carbs: r['摄入']['碳水'] || 0,
+            fat: r['摄入']['脂肪'] || 0
+        };
+    }
+    
     document.getElementById('t-cal').textContent = APP.targets.calories;
     document.getElementById('t-pro').textContent = APP.targets.protein;
     document.getElementById('t-carb').textContent = APP.targets.carbs;
@@ -456,9 +604,8 @@ function loadRecord(date) {
 
 function delRecord(date) {
     if (!confirm('确定删除？')) return;
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
-    delete records[date];
-    localStorage.setItem('records', JSON.stringify(records));
+    delete cloudRecords[date];
+    saveToCloud();
     selectedDate = null;
     document.getElementById('day-detail').style.display = 'none';
     renderCalendar();
