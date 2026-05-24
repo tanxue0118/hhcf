@@ -34,9 +34,9 @@ const JSONBIN_ID = 'your-bin-id';
 const JSONBIN_KEY = 'your-master-key';
 
 // 个人信息
-const HEIGHT = 170;  // 身高(cm)
-const AGE = 19;      // 年龄
-const LOVE_DATE = new Date('2025-05-17');  // 纪念日
+const HEIGHT = 身高;  // 身高(cm)
+const AGE = 年龄;      // 年龄
+const LOVE_DATE = new Date('20xx-xx-xx');  // 纪念日
 ```
 
 ## 文件结构
@@ -60,4 +60,5 @@ const LOVE_DATE = new Date('2025-05-17');  // 纪念日
 ## 最后声明
 希望其他人别使用，因为我没有做数据隔离，只为我女朋友打造。
 你们可以参考其技术，同时也别使用我的ai密钥，因为我没钱。
+（为防止有人用，我已经加密了）
 
