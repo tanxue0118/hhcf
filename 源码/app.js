@@ -5,9 +5,9 @@ const APP = {
 };
 
 const API_KEY = '填写你的deepseek key';
-const HEIGHT = 170;
-const AGE = 19;
-const LOVE_DATE = new Date('2025-05-17');
+const HEIGHT = 身高;
+const AGE = 年龄;
+const LOVE_DATE = new Date('年-月-日');  #在一起的时间
 
 // JSONBIN配置
 const JSONBIN_ID = 'JSONBIN ID';
@@ -146,7 +146,7 @@ const WEATHER_ZH = {
 async function getWeather() {
     let weatherData = null;
     try {
-        const res = await fetch('https://wttr.in/Foshan?format=j1');
+        const res = await fetch('https://wttr.in/填地址?format=j1');  #可以用经纬度，英文名，拼音
         if (res.ok) {
             const data = await res.json();
             const cur = data.current_condition[0];
@@ -186,15 +186,15 @@ function getEmoji(code) {
 async function generateTip(weather) {
     const hour = new Date().getHours();
     const days = Math.floor((new Date() - LOVE_DATE) / 86400000);
-    let info = '佛山狮山，晴天，25度';
+    let info = '地址，晴天，25度';
     if (weather) {
-        info = `佛山狮山，${weather.descZh}，${weather.temp}°C，湿度${weather.humidity}%`;
+        info = `地址，${weather.descZh}，${weather.temp}°C，湿度${weather.humidity}%`;
         const rainH = weather.hourly.filter(h => h.rain > 50);
         const coolH = weather.hourly.filter(h => h.temp < weather.temp - 3);
         if (rainH.length) info += `，${rainH.map(h => h.time + '点').join('、')}可能下雨`;
         if (coolH.length) info += `，${coolH.map(h => h.time + '点').join('、')}会降温`;
     }
-    const prompt = `你是暖心男友，给女朋友发消息。她在佛山狮山。
+    const prompt = `你是暖心男友，给女朋友发消息。她在地址。
 天气：${info}，现在${hour}点，在一起${days}天。
 生成30-50字暖心提醒，根据天气变化给建议（下雨带伞、降温加衣），语气温柔甜蜜，只返回内容。`;
     try {
