@@ -38,7 +38,10 @@ const HEIGHT = 身高;  // 身高(cm)
 const AGE = 年龄;      // 年龄
 const LOVE_DATE = new Date('20xx-xx-xx');  // 纪念日
 const res = await fetch('https://wttr.in/填地址?format=j1');  //可以用经纬度，英文名，拼音
+const w = parseFloat(document.getElementById('weight').value) || 默认体重; #填数字，因为体重是会变化的，所以填一个大概的就行
 
+在 `index.html`中修改：
+```html
 ```
 
 ## 文件结构
