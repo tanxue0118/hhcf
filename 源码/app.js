@@ -288,7 +288,7 @@ function loadSaved() {
 }
 
 function calcTargets() {
-    const w = parseFloat(document.getElementById('weight').value) || 53.18;
+    const w = parseFloat(document.getElementById('weight').value) || 默认体重; #填数字，因为体重是会变化的，所以填一个大概的就行
     const bmr = 10 * w + 6.25 * HEIGHT - 5 * AGE - 161;
     const t = bmr * 1.55 - 400;
     APP.targets = {
