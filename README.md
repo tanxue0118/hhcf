@@ -44,7 +44,7 @@ const w = parseFloat(document.getElementById('weight').value) || 默认体重; #
 
 在 `index.html`中修改：
 ```html
-
+<input type="text" id="weight" step="0.01" placeholder="默认体重（也可以不写）" inputmode="decimal">
 ```
 
 ## 文件结构
