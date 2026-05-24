@@ -37,6 +37,8 @@ const JSONBIN_KEY = 'your-master-key';
 const HEIGHT = 身高;  // 身高(cm)
 const AGE = 年龄;      // 年龄
 const LOVE_DATE = new Date('20xx-xx-xx');  // 纪念日
+const res = await fetch('https://wttr.in/填地址?format=j1');  //可以用经纬度，英文名，拼音
+
 ```
 
 ## 文件结构
