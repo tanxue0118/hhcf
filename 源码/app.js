@@ -93,8 +93,22 @@ async function loadFromCloud() {
         });
         if (res.ok) {
             const data = await res.json();
-            cloudRecords = data.record?.records || {};
+           const cloudData = data.record?.records || {};
+        
+        // 如果云端有数据，用云端数据
+        if (Object.keys(cloudData).length > 0) {
+            cloudRecords = cloudData;
+            // 同步到本地备份
+            localStorage.setItem('records', JSON.stringify(cloudRecords));
             console.log('云端数据加载成功');
+        } else {
+            // 云端为空，用本地数据
+            const localData = JSON.parse(localStorage.getItem('records') || '{}');
+            if (Object.keys(localData).length > 0) {
+                cloudRecords = localData;
+                console.log('云端为空，使用本地数据');
+            }
+        }
         }
     } catch(e) {
         console.log('云端加载失败，使用本地数据', e);
@@ -105,6 +119,9 @@ async function loadFromCloud() {
 
 // 保存到JSONBIN
 async function saveToCloud() {
+    // 先保存到本地（确保本地有备份）
+    localStorage.setItem('records', JSON.stringify(cloudRecords));
+    
     try {
         const res = await fetch(JSONBIN_URL, {
             method: 'PUT',
@@ -118,10 +135,8 @@ async function saveToCloud() {
             console.log('云端保存成功');
         }
     } catch(e) {
-        console.log('云端保存失败', e);
+        console.log('云端保存失败，数据已保存到本地', e);
     }
-    // 同时保存到本地作为备份
-    localStorage.setItem('records', JSON.stringify(cloudRecords));
 }
 
 // 纪念日
